@@ -55,6 +55,20 @@ call task3("Iliyan Ivanov", 2022);
 
 # 4. Създайте процедура, която по подадено име треньор извежда броя
 # водените от него групи или съобщение – ако този брой е 0.
+
+delimiter $
+drop procedure if exists task4 $
+create procedure task4(in coach_name varchar(255))
+begin
+	select COUNT(student_sport.student_id)
+    from coaches
+    join sportGroups on coaches.id = sportGroups.coach_id
+    join student_sport on student_sport.sportGroup_id = sportGroups.id
+    where coaches.name = coach_name;
+end $
+delimiter ;
+call task4("Ivan Todorov Petkov");
+
 # 5. Използвайте базата данни transaction_test. Създайте процедура за
 # прехвърляне на пари от една сметка в друга. Нека процедурата да извежда
 # съобщение за грешка ако няма достатъчно пари, за да се осъществи
