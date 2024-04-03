@@ -60,14 +60,24 @@ delimiter $
 drop procedure if exists task4 $
 create procedure task4(in coach_name varchar(255))
 begin
-	select COUNT(student_sport.student_id)
+	IF (0 IN (select COUNT(student_sport.student_id)
     from coaches
     join sportGroups on coaches.id = sportGroups.coach_id
     join student_sport on student_sport.sportGroup_id = sportGroups.id
-    where coaches.name = coach_name;
+    where coaches.name = coach_name))
+    then
+		SELECT "No students here" as error_message;
+	else
+		select COUNT(student_sport.student_id) as students_count
+		from coaches
+		join sportGroups on coaches.id = sportGroups.coach_id
+		join student_sport on student_sport.sportGroup_id = sportGroups.id
+		where coaches.name = coach_name;
+	end if;
 end $
 delimiter ;
 call task4("Ivan Todorov Petkov");
+call task4("no coach");
 
 # 5. Използвайте базата данни transaction_test. Създайте процедура за
 # прехвърляне на пари от една сметка в друга. Нека процедурата да извежда
@@ -76,4 +86,4 @@ call task4("Ivan Todorov Petkov");
 # използвате функцията ROW_COUNT(), която връща броя на засегнатите
 # редове след последната Update или Delete заявка. Процедурата да получава
 # като параметри ID на сметката от която се прехвърля, ID на сметката на
-# получателя и сумата, която трябва да се преведе
+# получателя и сумата, която трябва да се преведе# получателя и сумата, която трябва да се преведе
