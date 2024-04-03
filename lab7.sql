@@ -86,4 +86,42 @@ call task4("no coach");
 # използвате функцията ROW_COUNT(), която връща броя на засегнатите
 # редове след последната Update или Delete заявка. Процедурата да получава
 # като параметри ID на сметката от която се прехвърля, ID на сметката на
-# получателя и сумата, която трябва да се преведе# получателя и сумата, която трябва да се преведе
+# получателя и сумата, която трябва да се преведе
+use transaction_test;
+
+delimiter $
+drop procedure if exists task5 $
+create procedure task5(in money_to_transfer float, in from_account_id int, in to_account_id int)
+begin
+	start transaction;
+    if ((select currency from customer_accounts where id = from_account_id) <> (select currency from customer_accounts where id = to_account_id))
+    then
+		select "Not the same currency, can't transfer" as error_message;
+        rollback;
+	else
+		if ((select amount from customer_accounts where id = from_account_id) < money_to_transfer)
+		then
+			select "Not enough money, can't transfer" as error_message;
+			rollback;
+		else
+			update customer_accounts
+			set amount = amount - money_to_transfer
+			where id = from_account_id;
+			if (ROW_COUNT() = 1)
+			then
+				update customer_accounts
+				set amount = amount + money_to_transfer
+				where id = to_account_id;
+				select "Success" as error_message;
+				commit;
+			else
+				rollback;
+			end if;
+		end if;
+	end if;
+end $
+delimiter ;
+call task5(4000, 1, 3);
+call task5(4000, 3, 1);
+call task5(6000, 1, 3);
+call task5(4000, 1, 2);
