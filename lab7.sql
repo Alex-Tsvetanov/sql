@@ -112,10 +112,14 @@ begin
 				update customer_accounts
 				set amount = amount + money_to_transfer
 				where id = to_account_id;
-				select "Success" as error_message;
-				commit;
-			else
-				rollback;
+				if (ROW_COUNT() = 1)
+                then
+					select "Success" as error_message;
+					commit;
+				else
+					select "Can't update receiver's account" as error_message;
+					rollback;
+				end if;
 			end if;
 		end if;
 	end if;
