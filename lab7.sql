@@ -22,6 +22,21 @@ call task1("Ivan Todorov Petkov");
 # на спорта, имената на учениците, които тренират и имената на треньорите,
 # които водят тренировките по този спорт.
 
+delimiter $
+drop procedure if exists task2 $
+create procedure task2(in sport_id integer)
+begin
+	select sports.name, students.name, coaches.name
+    from sports
+    join sportGroups on sports.id = sportGroups.sport_id   
+    join coaches on sportGroups.coach_id = coaches.id
+    join student_sport on student_sport.sportGroup_id = sportGroups.id
+    join students on students.id = student_sport.student_id
+    where sports.id = sport_id;
+end $
+delimiter ;
+call task2(1);
+
 # 3. Създайте процедура, която по подадено име на студент и година извежда
 # средната сума на платените от него такси.
 # 4. Създайте процедура, която по подадено име треньор извежда броя
