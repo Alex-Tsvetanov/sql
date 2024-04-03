@@ -39,6 +39,20 @@ call task2(1);
 
 # 3. Създайте процедура, която по подадено име на студент и година извежда
 # средната сума на платените от него такси.
+
+delimiter $
+drop procedure if exists task3 $
+create procedure task3(in student_name varchar(255), in year integer)
+begin
+	select AVG(taxesPayments.paymentAmount)
+    from students
+    join taxesPayments on taxesPayments.student_id = students.id
+    where students.name = student_name
+    and taxesPayments.year = year;
+end $
+delimiter ;
+call task3("Iliyan Ivanov", 2022);
+
 # 4. Създайте процедура, която по подадено име треньор извежда броя
 # водените от него групи или съобщение – ако този брой е 0.
 # 5. Използвайте базата данни transaction_test. Създайте процедура за
