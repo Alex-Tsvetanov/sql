@@ -32,7 +32,18 @@ call multisportStudents();
 
 #3. Напишете процедура, която извежда имената на всички треньори, които не тренират
 #групи.
-
+drop procedure if exists noGroupsCoaches;
+delimiter |
+create procedure noGroupsCoaches()
+begin
+	select coaches.name
+    from coaches
+    left join sportGroups on sportGroups.coach_id = coaches.id
+    group by coaches.id
+    having COUNT(sportGroups.id) = 0;
+end |
+delimiter ;
+call noGroupsCoaches();
 
 #4. Използвайте базата данни transaction_test. Създайте процедура, която конвертира суми
 #от лева в евро и обратно по курса на БНБ. за прехвърляне на пари от една сметка в друга.
