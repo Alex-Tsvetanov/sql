@@ -17,9 +17,22 @@ select * from `task1`;
 
 #2. Създайте процедура, която извежда името на всеки студент, който тренира в повече от
 #една група.
+drop procedure if exists multisportStudents;
+delimiter |
+create procedure multisportStudents()
+begin
+	select students.name
+    from students
+    join student_sport on student_sport.student_id = students.id
+    group by students.id
+    having COUNT(student_sport.sportGroup_id) > 1;
+end |
+delimiter ;
+call multisportStudents();
 
 #3. Напишете процедура, която извежда имената на всички треньори, които не тренират
 #групи.
+
 
 #4. Използвайте базата данни transaction_test. Създайте процедура, която конвертира суми
 #от лева в евро и обратно по курса на БНБ. за прехвърляне на пари от една сметка в друга.
