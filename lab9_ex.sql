@@ -90,11 +90,21 @@ insert into student_sport(student_id, sportGroup_id) VALUES (1, 6);
 4. Създайте VIEW, което да носи информация за трите имена на
 учениците и броя на групите, в които тренират.
 */
+
+create view `task4` as
+select students.name, count(student_sport.sportGroup_id) 
+from students 
+join student_sport on student_sport.student_id = students.id
+group by students.id;
+
+select * from `task4`;
+
 /*
 5. Създайте процедура, която при подадени имена на треньор извежда
 всички имената на всеки ученик, които тренира при него, id на групата
 и името на спорта.
 */
+
 /*
 6. Напишете процедура, с която по подадено име на спорт се извеждат
 имената на треньорите, които водят съответните групи, мястото, часът
