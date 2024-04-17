@@ -105,6 +105,21 @@ select * from `task4`;
 и името на спорта.
 */
 
+DROP PROCEDURE if exists task5;
+delimiter |
+create procedure `task5`(in coach_name VARCHAR(1000))
+begin
+	select student_sport.sportGroup_id, sports.name, students.name
+    from coaches
+    join sportgroups on sportgroups.coach_id = coaches.id
+    join sports on sports.id = sportgroups.sport_id
+    join student_sport on student_sport.sportGroup_id = sportgroups.id
+    join students on students.id = student_sport.student_id
+    where coaches.name = coach_name;
+end |
+delimiter ;
+call task5("Ivan Todorov Petkov");
+
 /*
 6. Напишете процедура, с която по подадено име на спорт се извеждат
 имената на треньорите, които водят съответните групи, мястото, часът
