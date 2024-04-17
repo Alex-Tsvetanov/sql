@@ -125,3 +125,16 @@ call task5("Ivan Todorov Petkov");
 имената на треньорите, които водят съответните групи, мястото, часът
 и денят на тренировка.
 */
+
+DROP PROCEDURE if exists task6;
+delimiter |
+create procedure `task6`(in sport_name VARCHAR(1000))
+begin
+	select coaches.name, sportgroups.location, sportgroups.location, sportgroups.hourOfTraining, sportgroups.dayOfWeek
+    from sports
+    join sportgroups on sports.id = sportgroups.sport_id
+    join coaches on sportgroups.coach_id = coaches.id
+    where sports.name = sport_name;
+end |
+delimiter ;
+call task6("Volleyball");
