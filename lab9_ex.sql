@@ -65,6 +65,27 @@ select * from `salarypayments`;
 добавяне, който при необходимост да извежда съобщение за
 проблема.
 */
+
+DROP TRIGGER if exists before_student_sport_insert;
+delimiter |
+CREATE TRIGGER before_student_sport_insert BEFORE INSERT ON student_sport
+FOR EACH ROW 
+BEGIN
+	IF ((SELECT COUNT(sportGroup_id) from student_sport where student_id = NEW.student_id) >= 2)
+    THEN 
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The student is already registered in 2 groups.';
+    end if;
+END
+|
+delimiter ;
+SELECT sportGroup_id from student_sport where student_id = 1;
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 1);
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 2);
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 3);
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 4);
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 5);
+insert into student_sport(student_id, sportGroup_id) VALUES (1, 6);
+
 /*
 4. Създайте VIEW, което да носи информация за трите имена на
 учениците и броя на групите, в които тренират.
