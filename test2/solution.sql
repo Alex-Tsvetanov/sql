@@ -121,16 +121,65 @@ paymentProcedure: begin
 end $
 delimiter ;
 
+-- test
 call commisionPayment(4, 2024);
 select * from salaryPayments;
 
-select AVG(sp.salaryAmount) as salaryAmount,
-			ifnull(commision, 0) as monthlyBonus,
-            2024 as yearOfPayment, 
-            4 as monthOfPayment, 
-            now() as dateOfPayment, 
-            employees.id as employee_id
-        from employees
-        LEFT join salaryPayments as sp on sp.employee_id = employees.id
-        LEFT join commisions on commisions.employeeId = sp.employee_id
-        group by employees.id;
+-- задача 3
+drop procedure if exists SendEMailToCustomer;
+delimiter $
+create procedure SendEMailToCustomer(customer_id int, property_id int, discount float) begin
+end $
+delimiter ;
+drop trigger if exists discount_check;
+delimiter $
+CREATE TRIGGER discount_check after insert ON ads
+FOR EACH ROW
+BEGIN
+	declare ads_active_of_this_user int;
+    declare customer_id int;
+	declare discount float default 0;
+    
+	select c.id into customer_id
+		from properties as p
+		join customers as c on c.id = properties.customer_id
+		where p.id = NEW.property_id;
+
+	if customer_id is not null then		
+		select count(ads.id) into ads_active_of_this_user
+			from ads
+			join properties on properties.id = ads.property_id
+			join customers on customers.id = properties.customer_id
+			where customers.id = customer_id;
+		if ads_active_of_this_user >= 1 AND ads_active_of_this_user <= 5 then
+			set discount = 0.5/100;
+		elseif ads_active_of_this_user > 5 then
+			set discount = 1 / 100;
+		end if;
+		call SendEMailToCustomer(customer_id, NEW.property_id, discount);
+	end if;
+END$
+delimiter ;
+
+-- задача 4
+drop trigger if exists free_check;
+delimiter $
+CREATE TRIGGER free_check before insert ON ads
+FOR EACH ROW
+begin
+	declare number_of_ads int default 0;
+	select count(ads.id) into number_of_ads
+		from ads
+		join properties on properties.id = ads.property_id
+		join customers on customers.id = properties.customer_id
+		where customers.id in (
+			select c.id
+				from properties as p
+				join customers as c on c.id = properties.customer_id
+				where p.id = NEW.property_id
+		);
+    if number_of_ads > 2 then
+		signal sqlstate '45000' set message_text = "Freemium access limits to 2 ads which you are not trying to exceed.";
+	end if;
+END$
+delimiter ;
