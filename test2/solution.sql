@@ -73,35 +73,71 @@ paymentProcedure: begin
             set totalDealCommission = totalDealCommission + dealCommission;
             set totalDealCount = totalDealCount + 1;
             
-            INSERT INTO commisions(employeeId, commision) VALUES (dealEmployeeId, dealCommission) ON DUPLICATE KEY UPDATE commision=commision+dealCommission;
+            INSERT INTO commisions(employeeId, commision) VALUES (dealEmployeeId, dealCommission) 
+            ON DUPLICATE KEY UPDATE commision=commision+dealCommission;
+            
+            -- -------------- INSERT INTO salaryPayments(salaryAmount, monthlyBonus, yearOfPayment, monthOfPayment, dateOfPayment, employee_id)
+            -- -------------- VALUES (0, dealCommission, year(now()), month(now()), now(), dealEmployeeId) 
+            -- -------------- ON DUPLICATE KEY UPDATE monthlyBonus=monthlyBonus+dealCommission;
 		END LOOP;
         
         set avgDealCommission = totalDealCommission / totalDealCount;
+	    -- select avg(commision) into avgDealCommission from commisions group by employeeId;
+        
+        -- -------------- update salaryPayments
+        -- -------------- set monthlyBonus = monthlyBonus + 15 * avgDealCommission / 100
+        -- -------------- where employeeId in (select c.employeeId from salaryPayments as c where c.yearOfPayment = year and c.monthOfPayment = month order by c.monthlyBonus desc limit 1);
+		
+        update commisions
+        set commision = commision + 15 * avgDealCommission / 100
+        where employeeId in (select c.employeeId from commisions as c order by c.commission desc limit 1);
+        
+        if ROW_COUNT() > 1 then
+		  	rollback;
+             leave paymentProcedure;
+		end if;
+        
+        update commisions
+        set commision = commision + 10 * avgDealCommission / 100
+        where employeeId in (select c.employeeId from commisions order by c.commission desc limit 1 offset 1);
+        
+        if ROW_COUNT() > 1 then
+		  	rollback;
+             leave paymentProcedure;
+		end if;
         
         update commisions
         set commision = commision + 5 * avgDealCommission / 100
-        order by commision desc
-        limit 3; # първите 3 +5%
-        -- if ROW_COUNT() <> 3 then
-		-- 	select 
+        where employeeId in (select c.employeeId from commisions order by c.commission desc limit 1 offset 2);
+        
+        if ROW_COUNT() > 1 then
+		  	rollback;
+             leave paymentProcedure;
+		end if;
+        
+        -- update commisions
+        -- set commision = commision + 5 * avgDealCommission / 100
+        -- order by commision desc
+        -- limit 3; # първите 3 +5%
+        -- if ROW_COUNT() <= 3 then
+		--  	rollback;
+        --     leave paymentProcedure;
+		-- end if;
+        -- 
+        -- update commisions
+        -- set commision = commision + 5 * avgDealCommission / 100
+        -- order by commision desc
+        -- limit 2; # първите 2 +още 5% (общо 10)
+        -- if ROW_COUNT() <= 2 then
 		-- 	rollback;
         --     leave paymentProcedure;
 		-- end if;
-        
-        update commisions
-        set commision = commision + 5 * avgDealCommission / 100
-        order by commision desc
-        limit 2; # първите 2 +още 5% (общо 10)
-        -- if ROW_COUNT() <> 2 then
-		-- 	rollback;
-        --     leave paymentProcedure;
-		-- end if;
-        
-        update commisions
-        set commision = commision + 5 * avgDealCommission / 100
-        order by commision desc
-        limit 1; # първия 1 +още 5% (общо 15)
-        -- if ROW_COUNT() <> 1 then
+        -- 
+        -- update commisions
+        -- set commision = commision + 5 * avgDealCommission / 100
+        -- order by commision desc
+        -- limit 1; # първия 1 +още 5% (общо 15)
+        -- if ROW_COUNT() <= 1 then
 		-- 	rollback;
         --     leave paymentProcedure;
 		-- end if;
@@ -117,6 +153,11 @@ paymentProcedure: begin
         LEFT join salaryPayments as sp on sp.employee_id = employees.id
         LEFT join commisions on commisions.employeeId = sp.employee_id
         group by employees.id;
+        if ROWCOUNT() in (select COUNT(employees.id) from employees) then
+			commit;
+		else
+			rollback;
+        end if;
     commit;
 end $
 delimiter ;
@@ -140,23 +181,25 @@ BEGIN
     declare customer_id int;
 	declare discount float default 0;
     
-	select c.id into customer_id
+	select p.customer_id into customer_id -- c.id into customer_id
 		from properties as p
-		join customers as c on c.id = properties.customer_id
+		-- join customers as c on c.id = properties.customer_id
 		where p.id = NEW.property_id;
 
-	if customer_id is not null then		
+	if customer_id is not null then
 		select count(ads.id) into ads_active_of_this_user
 			from ads
 			join properties on properties.id = ads.property_id
-			join customers on customers.id = properties.customer_id
-			where customers.id = customer_id;
-		if ads_active_of_this_user >= 1 AND ads_active_of_this_user <= 5 then
+			-- join customers on customers.id = properties.customer_id
+			where properties.customer_id = customer_id; -- customers.id = customer_id;
+
+		if ads_active_of_this_user >= 2 AND ads_active_of_this_user <= 6 then
 			set discount = 0.5/100;
-		elseif ads_active_of_this_user > 5 then
+			call SendEMailToCustomer(customer_id, NEW.property_id, discount);
+		elseif ads_active_of_this_user > 6 then
 			set discount = 1 / 100;
+			call SendEMailToCustomer(customer_id, NEW.property_id, discount);
 		end if;
-		call SendEMailToCustomer(customer_id, NEW.property_id, discount);
 	end if;
 END$
 delimiter ;
@@ -171,11 +214,9 @@ begin
 	select count(ads.id) into number_of_ads
 		from ads
 		join properties on properties.id = ads.property_id
-		join customers on customers.id = properties.customer_id
-		where customers.id in (
-			select c.id
+		where properties.customer_id in (
+			select p.customer_id
 				from properties as p
-				join customers as c on c.id = properties.customer_id
 				where p.id = NEW.property_id
 		);
     if number_of_ads > 2 then
